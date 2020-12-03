@@ -48,6 +48,15 @@ void Main()
             texture.fill(image);
         }
 
+        if (SimpleGUI::Button(U"Save", Vec2(1050, 90), 120))
+        {
+            const auto save = Dialog::SaveImage();
+            if (save)
+            {
+                image.save(save.value());
+            }
+        }
+
         // テクスチャを表示
         texture.draw();
     }
