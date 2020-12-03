@@ -9,7 +9,10 @@ void Main()
     constexpr int32 thickness = 2;
 
     // ペンの色
-    constexpr Color penColor = Palette::Black;
+    Color penColor = Palette::Black;
+
+    // Indicate Eraser switch on/off
+    bool canErase = false;
 
     // 書き込み用の画像データを用意
     Image image(canvasSize, Palette::White);
@@ -48,6 +51,7 @@ void Main()
             texture.fill(image);
         }
 
+        // Save button
         if (SimpleGUI::Button(U"Save", Vec2(1050, 90), 120))
         {
             const auto save = Dialog::SaveImage();
@@ -56,6 +60,17 @@ void Main()
                 image.save(save.value());
             }
         }
+
+        // Eraser switch
+        if (SimpleGUI::CheckBox(canErase, U"Eraser", Vec2(1050, 140)))
+        {
+            if (Palette::Black == penColor)
+                penColor = Palette::White;
+            else
+                penColor = Palette::Black;
+
+        }
+
 
         // テクスチャを表示
         texture.draw();
