@@ -6,7 +6,7 @@ void Main()
     constexpr Size canvasSize(1024, 1024);
 
     // ペンの太さ
-    constexpr int32 thickness = 2;
+    int32 thickness = 2;
 
     // ペンの色
     Color penColor = Palette::Black;
@@ -20,6 +20,7 @@ void Main()
     // 表示用のテクスチャ（内容を更新するので DynamicTexture）
     DynamicTexture texture(image);
 
+    // Window size
     Window::SetStyle(WindowStyle::Sizable);
     Scene::SetScaleMode(ScaleMode::ResizeFill);
 
@@ -65,12 +66,16 @@ void Main()
         if (SimpleGUI::CheckBox(canErase, U"Eraser", Vec2(1050, 140)))
         {
             if (Palette::Black == penColor)
+            {
                 penColor = Palette::White;
+                thickness = 5;
+            }
             else
+            {
                 penColor = Palette::Black;
-
+                thickness = 2;
+            }
         }
-
 
         // テクスチャを表示
         texture.draw();
