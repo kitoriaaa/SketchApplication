@@ -77,6 +77,17 @@ void Main()
             }
         }
 
+        // Load sketch (Currently, it only supports 1024x1024)
+        if (SimpleGUI::Button(U"Load Image", Vec2(1050, 190), 120))
+        {
+            auto load = Dialog::OpenImage();
+            if (load)
+            {
+                image = std::move(load);
+                texture.fill(image);
+            }
+        }
+
         // テクスチャを表示
         texture.draw();
     }
