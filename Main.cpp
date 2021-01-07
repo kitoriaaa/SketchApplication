@@ -1,4 +1,10 @@
 ﻿# include <Siv3D.hpp>
+# include <WinSock2.h>
+# include <WS2tcpip.h>
+# include <windows.h>
+
+
+#pragma comment(lib, "ws2_32.lib")
 
 void Main()
 {
@@ -13,6 +19,9 @@ void Main()
 
     // Indicate Eraser switch on/off
     bool canErase = false;
+    bool lineMode = false;
+    bool start = false;
+    bool end = false;
 
     // 書き込み用の画像データを用意
     Image image(canvasSize, Palette::White);
@@ -24,9 +33,14 @@ void Main()
     Window::SetStyle(WindowStyle::Sizable);
     Scene::SetScaleMode(ScaleMode::ResizeFill);
 
+    constexpr int buttonSize = 150;
+
+    Point* startPoint = nullptr;
+    Point* endPoint = nullptr;
+
     while (System::Update())
     {
-        if (MouseL.pressed())
+        if (MouseL.pressed() && !lineMode)
         {
             // 書き込む線の始点は直前のフレームのマウスカーソル座標
             // （初回はタッチ操作時の座標のジャンプを防ぐため、現在のマウスカーソル座標にする）
@@ -43,7 +57,7 @@ void Main()
         }
 
         // 描いたものを消去するボタンが押されたら
-        if (SimpleGUI::Button(U"Clear", Vec2(1050, 40), 120))
+        if (SimpleGUI::Button(U"Clear", Vec2(1050, 700), buttonSize))
         {
             // 画像を白で塗りつぶす
             image.fill(Palette::White);
@@ -53,7 +67,7 @@ void Main()
         }
 
         // Save button
-        if (SimpleGUI::Button(U"Save", Vec2(1050, 90), 120))
+        if (SimpleGUI::Button(U"Save", Vec2(1050, 90), buttonSize))
         {
             const auto save = Dialog::SaveImage();
             if (save)
@@ -63,7 +77,7 @@ void Main()
         }
 
         // Eraser switch
-        if (SimpleGUI::CheckBox(canErase, U"Eraser", Vec2(1050, 140)))
+        if (SimpleGUI::CheckBox(canErase, U"Eraser", Vec2(1050, 140), buttonSize))
         {
             if (Palette::Black == penColor)
             {
@@ -78,7 +92,7 @@ void Main()
         }
 
         // Load sketch (Currently, it only supports 1024x1024)
-        if (SimpleGUI::Button(U"Load Image", Vec2(1050, 190), 120))
+        if (SimpleGUI::Button(U"Load Image", Vec2(1050, 190), buttonSize))
         {
             auto load = Dialog::OpenImage();
             if (load)
@@ -88,10 +102,81 @@ void Main()
             }
         }
 
+        // Create 3D object. Sketch images send Flask CNN server
+        /*if (SimpleGUI::Button(U"Create Object", Vec2(1050, 240), buttonSize))
+        {
+            WSADATA wsaData;
+            SOCKET s;
+
+            int err = WSAStartup(MAKEWORD(2, 0), &wsaData);
+            if (err != 0)
+            {
+                switch (err) {
+                case WSASYSNOTREADY:
+                    std::cout << "WSASYSNOTREADY" << std::endl;
+                    break;
+                case WSAVERNOTSUPPORTED:
+                    std::cout << "WSAVERNOTSUPPORTED" << std::endl;
+                    break;
+                case WSAEINPROGRESS:
+                    std::cout << "WSAEINPROGRESS" << std::endl;
+                    break;
+                case WSAEPROCLIM:
+                    std::cout << "WSAEPROCLIM" << std::endl;
+                    break;
+                case WSAEFAULT:
+                    std::cout << "WSAEFAULT" << std::endl;
+                    break;
+                }
+            }
+
+            struct sockaddr_in addr;
+
+            WSACleanup();
+        }*/
+
+        // Change drawing mode
+        if (SimpleGUI::CheckBox(lineMode, U"LineMode", Vec2(1050, 290), buttonSize))
+            Sleep(1 * 100);
+        SimpleGUI::CheckBox(start, U"Start", Vec2(1050, 320), buttonSize);
+        SimpleGUI::CheckBox(end, U"End", Vec2(1050, 370), buttonSize);
+
+        if (MouseL.pressed() && lineMode)
+        {
+            // 点と点をタッチしてつなげる
+            if (MouseL.down() && startPoint == nullptr) {
+                Point from = Cursor::Pos();
+                startPoint = &from;
+                texture.fill(image);
+                texture.draw();
+                continue;
+            }
+
+            if (MouseL.down() && startPoint != nullptr && endPoint == nullptr) {
+                Point to = Cursor::Pos();
+                endPoint = &to;
+            }
+
+            if (end && startPoint != nullptr && endPoint != nullptr) {
+                Line(*startPoint, *endPoint).overwrite(image, thickness, penColor);
+
+                //Print << *startPoint;
+                //Print << *endPoint;
+                
+                //Log << *startPoint << " " << *endPoint;
+               
+                startPoint = endPoint = nullptr;
+                start = end = false;
+                // 書き込み終わった image でテクスチャを更新
+                texture.fill(image);
+            }
+        }
+
         // テクスチャを表示
         texture.draw();
     }
 }
+
 
 //
 // = アドバイス =
