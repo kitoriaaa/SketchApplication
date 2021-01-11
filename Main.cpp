@@ -29,9 +29,10 @@ void Main()
 
     // Window size
     Window::SetStyle(WindowStyle::Sizable);
-    Scene::SetScaleMode(ScaleMode::ResizeFill);
+    //Scene::SetScaleMode(ScaleMode::ResizeFill);
+    Scene::Resize(1500, 1024);
 
-    constexpr int buttonSize = 150;
+    constexpr int buttonSize = 140;
     constexpr int buttonPosX = 1050;
 
     Point* startPoint = nullptr;
