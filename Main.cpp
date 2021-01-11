@@ -20,8 +20,6 @@ void Main()
     // Indicate Eraser switch on/off
     bool canErase = false;
     bool lineMode = false;
-    bool start = false;
-    bool end = false;
 
     // 書き込み用の画像データを用意
     Image image(canvasSize, Palette::White);
@@ -34,9 +32,12 @@ void Main()
     Scene::SetScaleMode(ScaleMode::ResizeFill);
 
     constexpr int buttonSize = 150;
+    constexpr int buttonPosX = 1050;
 
     Point* startPoint = nullptr;
     Point* endPoint = nullptr;
+    bool isTouchedStart = false;
+
 
     while (System::Update())
     {
@@ -57,7 +58,7 @@ void Main()
         }
 
         // 描いたものを消去するボタンが押されたら
-        if (SimpleGUI::Button(U"Clear", Vec2(1050, 700), buttonSize))
+        if (SimpleGUI::Button(U"Clear", Vec2(buttonPosX, 700), buttonSize))
         {
             // 画像を白で塗りつぶす
             image.fill(Palette::White);
@@ -67,7 +68,7 @@ void Main()
         }
 
         // Save button
-        if (SimpleGUI::Button(U"Save", Vec2(1050, 90), buttonSize))
+        if (SimpleGUI::Button(U"Save", Vec2(buttonPosX, 90), buttonSize))
         {
             const auto save = Dialog::SaveImage();
             if (save)
@@ -77,7 +78,7 @@ void Main()
         }
 
         // Eraser switch
-        if (SimpleGUI::CheckBox(canErase, U"Eraser", Vec2(1050, 140), buttonSize))
+        if (SimpleGUI::CheckBox(canErase, U"Eraser", Vec2(buttonPosX, 140), buttonSize))
         {
             if (Palette::Black == penColor)
             {
@@ -89,10 +90,11 @@ void Main()
                 penColor = Palette::Black;
                 thickness = 2;
             }
+            lineMode = false;
         }
 
         // Load sketch (Currently, it only supports 1024x1024)
-        if (SimpleGUI::Button(U"Load Image", Vec2(1050, 190), buttonSize))
+        if (SimpleGUI::Button(U"Load Image", Vec2(buttonPosX, 190), buttonSize))
         {
             auto load = Dialog::OpenImage();
             if (load)
@@ -136,40 +138,50 @@ void Main()
         }*/
 
         // Change drawing mode
-        if (SimpleGUI::CheckBox(lineMode, U"LineMode", Vec2(1050, 290), buttonSize))
-            Sleep(1 * 100);
-        SimpleGUI::CheckBox(start, U"Start", Vec2(1050, 320), buttonSize);
-        SimpleGUI::CheckBox(end, U"End", Vec2(1050, 370), buttonSize);
+        if (SimpleGUI::CheckBox(lineMode, U"LineMode", Vec2(buttonPosX, 290), buttonSize)) {
+            startPoint = endPoint = nullptr;
+            isTouchedStart = false;
+        }
 
-        if (MouseL.pressed() && lineMode)
+        // 2点間の直線を結ぶ
+        if (SimpleGUI::Button(U"Draw line", Vec2(buttonPosX, 400), buttonSize)&& startPoint != nullptr && endPoint != nullptr) {
+            Line(*startPoint, *endPoint).overwrite(image, thickness, penColor);
+            startPoint = endPoint = nullptr;
+        }
+
+
+        // 直線を結ぶ2点を取得する
+        if (lineMode)
         {
-            // 点と点をタッチしてつなげる
-            if (MouseL.down() && startPoint == nullptr) {
+            // 1つ目の点
+            if (MouseL.down() && isTouchedStart == false) {
                 Point from = Cursor::Pos();
-                startPoint = &from;
+                // 押された点がキャンバス内かチェック
+                if ((0 <= from.x && from.x <= canvasSize.x) && (0 <= from.y && from.y <= canvasSize.y)) {
+                    startPoint = &from;
+                    Line(*startPoint, *startPoint).overwrite(image, thickness, penColor);
+                    isTouchedStart = true;
+                    Print << U"start pint";
+                    Print << *startPoint;
+                }
+                // 同一フレーム内でendPointを取得しないようにcontinue
                 texture.fill(image);
                 texture.draw();
                 continue;
             }
 
-            if (MouseL.down() && startPoint != nullptr && endPoint == nullptr) {
+            // 2つ目の点
+            if (MouseL.down() && isTouchedStart == true) {
                 Point to = Cursor::Pos();
-                endPoint = &to;
+                if ((0 <= to.x && to.x <= canvasSize.x) && (0 <= to.y && to.y <= canvasSize.y)) {
+                    endPoint = &to;
+                    isTouchedStart = false;
+                    Line(*endPoint, *endPoint).overwrite(image, thickness, penColor);
+                    Print << U"end point";
+                    Print << *endPoint;
+                }
             }
-
-            if (end && startPoint != nullptr && endPoint != nullptr) {
-                Line(*startPoint, *endPoint).overwrite(image, thickness, penColor);
-
-                //Print << *startPoint;
-                //Print << *endPoint;
-                
-                //Log << *startPoint << " " << *endPoint;
-               
-                startPoint = endPoint = nullptr;
-                start = end = false;
-                // 書き込み終わった image でテクスチャを更新
-                texture.fill(image);
-            }
+            texture.fill(image);
         }
 
         // テクスチャを表示
